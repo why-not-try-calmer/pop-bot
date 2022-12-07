@@ -51,7 +51,7 @@ def run_in_sub(cmd: str, args: list[str]) -> str:
             universal_newlines=True,
         )
         if res.returncode != 0:
-            raise Exception(f"Failed! Errors: {res.stderr}, Output: {res.stdout}")
+            raise Exception(f"Failed! Errors: {res.stderr}")
         else:
             return res.stdout
     except TimeoutError:
