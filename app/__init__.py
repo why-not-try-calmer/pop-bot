@@ -1,5 +1,5 @@
-from os import environ
 from typing import NamedTuple
+from os import environ
 
 
 class Config(NamedTuple):
@@ -9,9 +9,11 @@ class Config(NamedTuple):
     endpoint_termination: str
 
 
+token = environ.get("TOKEN", "")
+
 config = Config(
-    environ["TOKEN"],
+    token,
     int(environ.get("PORT", "8000")),
     environ.get("BOT_USERNAME", "pop"),
-    f"bot{environ['TOKEN']}"
+    f"bot{token}",
 )

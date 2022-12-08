@@ -1,19 +1,9 @@
 import cherrypy
+from os import environ
 
 from app.proc import parse_validate, run_in_sub
+from app.funcs import get_cmd
 from app import config
-
-
-def get_cmd(update: dict) -> None | str:
-
-    if message := update.get("message"):
-
-        if text := message.get("text"):
-            head: str = text[: len(config.bot_name) + 1]
-
-            if f"@{config.bot_name}" == head:
-                tail: str = text[len(config.bot_name) + 1 :]
-                return tail.strip()
 
 
 class Webhook:

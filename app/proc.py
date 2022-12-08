@@ -1,5 +1,7 @@
 import subprocess
 
+from app.funcs import raise_error
+
 allowed_0 = [
     "apt",
     "cat",
@@ -7,6 +9,7 @@ allowed_0 = [
     "ls",
     "echo",
     "find",
+    "flatpak",
     "grep",
     "head",
     "history",
@@ -23,20 +26,22 @@ allowed_0 = [
 
 allowed_apt_1 = ["info", "list", "search", "show"]
 
+allowed_flatpak_1 = ["search"]
+
 
 def parse_validate(cmd: str) -> list[str]:
     args = cmd.split(" ")
 
     if not args[0] in allowed_0:
-        raise ValueError(
-            f"This BASH command is not allowed: {args[0]}. Allowed BASH commands are: {','.join(allowed_0)}"
-        )
+        raise_error(args[0], "bash", allowed_0)
 
     if args[0] == "apt":
         if not args[1] in allowed_apt_1:
-            raise ValueError(
-                f"This APT command is not allowed: {args[1]}. Allowed APT commands are: {','.join(allowed_apt_1)}"
-            )
+            raise_error(args[1], "apt", allowed_apt_1)
+
+    if args[0] == "flatpak":
+        if not args[1] in allowed_flatpak_1:
+            raise_error(args[1], "flatpak", allowed_flatpak_1)
 
     return args
 
