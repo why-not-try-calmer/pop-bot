@@ -16,10 +16,10 @@ def get_cmd(update: dict) -> None | str:
 
             if len(splitted) < 2:
                 raise ValueError(
-                    "You command to the bot lacks needs arguments/parameters."
+                    "Your command to the bot lacks needs arguments/parameters."
                 )
-
             cmd, tail = splitted[0][1:], splitted[1]
+            
             match next(filter(lambda w: cmd == w, commands), None):
                 case "r":
                     return tail

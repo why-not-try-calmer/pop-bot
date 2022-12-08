@@ -1,5 +1,4 @@
 import cherrypy
-from os import environ
 
 from app.proc import parse_validate, run_in_sub
 from app.funcs import get_cmd
