@@ -1,6 +1,8 @@
-# import requests
+import requests
+import math
 
 from app.__main__ import get_cmd
+from app.funcs import slice_on_4096
 
 """
 def test_endpoint():
@@ -14,3 +16,10 @@ def test_endpoint():
 def test_get_cmd():
     update = {"message": {"text": "/r apt list --installed"}}
     assert get_cmd(update)
+
+def test_slices():
+    response = requests.get("https://baconipsum.com/api/?type=meat-and-filler&paras=15&format=text")
+    text = response.text
+    expected_slices = math.ceil(len(text)/4096)
+    slices = slice_on_4096(text)
+    assert len(slices) == expected_slices

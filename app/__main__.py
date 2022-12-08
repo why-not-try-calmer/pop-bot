@@ -22,15 +22,18 @@ class Webhook:
             if cmd := get_cmd(update):
                 args = parse_validate(cmd)
                 res = run_in_sub(cmd, args)
-                reply(update.message.chat.id, res)
+                reply(update, res)
+                logging.info(f"Ok")
             else:
                 reply(
-                    update.message.chat.id,
+                    update,
                     "Unable to find any command in what you sent.",
                 )
+                logging.info(f"No valid command")
 
         except Exception as error:
-            reply(update.message.chat.id, str(error).strip())
+            logging.info(f"Exception: {error}")
+            reply(update, str(error).strip())
 
         finally:
             return 200

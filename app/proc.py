@@ -52,7 +52,7 @@ def run_in_sub(cmd: str, args: list[str]) -> str:
             args,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            timeout=3,
+            timeout=15,
             universal_newlines=True,
         )
         if res.returncode != 0:
