@@ -1,5 +1,6 @@
 from typing import NamedTuple
 from os import environ
+from requests import Session
 
 
 class Config(NamedTuple):
@@ -7,6 +8,7 @@ class Config(NamedTuple):
     port: int
     bot_name: str
     endpoint_termination: str
+    session: Session
 
 
 token = environ.get("TOKEN", "")
@@ -16,4 +18,5 @@ config = Config(
     int(environ.get("PORT", "8000")),
     environ.get("BOT_USERNAME", "pop"),
     f"bot{token}",
+    Session(),
 )

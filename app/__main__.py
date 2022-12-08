@@ -1,8 +1,11 @@
 import cherrypy
+import logging
 
 from app.proc import parse_validate, run_in_sub
-from app.funcs import get_cmd
+from app.funcs import get_cmd, reply
 from app import config
+
+logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
 
 class Webhook:
@@ -13,20 +16,24 @@ class Webhook:
         if rec_termination != config.endpoint_termination:
             return 404
 
-        try:
-            update = cherrypy.request.json
+        update = cherrypy.request.json
 
+        try:
             if cmd := get_cmd(update):
                 args = parse_validate(cmd)
                 res = run_in_sub(cmd, args)
-                result_msg = "results" if isinstance(res, list) else "result"
-                return {result_msg: res}
-
+                reply(update.message.chat.id, res)
             else:
-                return 200
+                reply(
+                    update.message.chat.id,
+                    "Unable to find any command in what you sent.",
+                )
 
         except Exception as error:
-            return {"error": str(error).strip()}
+            reply(update.message.chat.id, str(error).strip())
+
+        finally:
+            return 200
 
 
 def main():
