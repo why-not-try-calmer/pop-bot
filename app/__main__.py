@@ -40,7 +40,11 @@ class Webhook:
             return {"error": str(error).strip()}
 
 
-if __name__ == "__main__":
+def main():
     global_config = {"server.socket_host": "0.0.0.0", "server.socket_port": config.port}
     cherrypy.config.update(global_config)
     cherrypy.quickstart(Webhook())
+
+
+if __name__ == "__main__":
+    main()
