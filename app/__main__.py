@@ -5,7 +5,7 @@ import cherrypy
 
 from app import config
 from app.funcs import get_chatid, get_cmd, reply
-from app.proc import Query, consume, queue
+from app.worker import Query, consume, queue
 
 logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
@@ -25,13 +25,13 @@ class Webhook:
                 if cmd := get_cmd(update):
                     query = Query(cmd=cmd, chat_id=chat_id)
                     queue.put_nowait(query)
-                    logging.info("Enqueue")
+                    logging.info("Enqueued.")
                 else:
                     error = f"No valid command for {update}"
                     reply(Query(error=error, chat_id=chat_id))
                     logging.info(error)
             except Exception as error:
-                reply(Query(**{"error": error, "chat_id": chat_id}))
+                reply(Query(error=error, chat_id=chat_id))
                 logging.info(f"Exception: {error}")
             finally:
                 return 200

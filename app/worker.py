@@ -1,7 +1,7 @@
 import subprocess
 from collections import UserDict
+from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from time import sleep
 
 from app.funcs import raise_error, reply
 
@@ -56,7 +56,7 @@ def run_in_sub(cmd: str, args: list[str]) -> str:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=15,
-            universal_newlines=True,
+            encoding="utf-8",
         )
         if res.returncode != 0:
             raise Exception(f"Failed! Errors: {res.stderr}")
@@ -77,15 +77,20 @@ queue: Queue[Query] = Queue(maxsize=10)
 
 
 def consume(q: Queue):
-    while True:
-        if query := q.get():
-            try:
-                cmd = query["cmd"]
-                args = parse_validate(cmd)
-                res = run_in_sub(cmd, args)
-                query["result"] = res
-                reply(query)
-            except Exception as error:
-                query["error"] = error
-                reply(query)
-        sleep(0.01)
+    def send_back_result(query: Query, result: str):
+        query["result"] = result
+        reply(query)
+
+    with ThreadPoolExecutor() as pool:
+        while True:
+            if query := q.get():
+                try:
+                    cmd = query["cmd"]
+                    args = parse_validate(cmd)
+                    future = pool.submit(run_in_sub, cmd, args)
+                    future.add_done_callback(
+                        lambda f: send_back_result(query, f.result())
+                    )
+                except Exception as error:
+                    query["error"] = error
+                    reply(query)

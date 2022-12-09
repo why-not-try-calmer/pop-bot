@@ -10,27 +10,20 @@ def raise_error(cmd: str, service: str, allowed: list[str]) -> str:
 commands = ["r", "run"]
 
 
-def slice_on_4096(_input: list[str] | str, last="", acc=[]) -> list[str]:
-    too_long = lambda s: len(s) > 4096
-
-    if isinstance(_input, str):
-        if too_long(_input):
-            _input = _input.split("\n")
-        else:
-            return [_input]
-
-    if not _input:
-        acc.append(last)
+def slice_on_n(s: str, n=4096, acc: list[str] = []) -> list[str]:
+    if len(s) <= n:
+        acc.append(s)
         return acc
 
-    head, tail = _input[0], _input[1:]
-    joined = "\n".join([last, head])
+    sli = s[:n]
+    before_after = sli.rsplit("\n", 1)
 
-    if too_long(joined):
-        acc.append(last)
-        return slice_on_4096(tail, head, acc)
-    else:
-        return slice_on_4096(tail, joined, acc)
+    acc.append(before_after[0])
+    return slice_on_n(
+        (before_after[1] + s[n:] if len(before_after) == 2 else s[n:]),
+        n,
+        acc,
+    )
 
 
 def get_cmd(update: dict) -> None | str:
@@ -63,7 +56,7 @@ def as_block(text: str) -> str:
     return f"```\n{text.strip()}\n```"
 
 
-def from_query(query) -> str:
+def as_text(query) -> str:
     if "result" in query:
         return f"Command: `{query['cmd']}`. Result:\n{query['result']}"
     else:
@@ -73,7 +66,7 @@ def from_query(query) -> str:
 def reply(query):
     payload = {"chat_id": query["chat_id"], "parse_mode": "Markdown"}
     url = f"https://api.telegram.org/bot{config.token}/sendMessage"
-    slices = slice_on_4096(from_query(query))
+    slices = slice_on_n(as_text(query))
 
     if not slices:
         raise ValueError(
