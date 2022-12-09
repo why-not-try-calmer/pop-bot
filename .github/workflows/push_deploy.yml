@@ -1,0 +1,25 @@
+name: Push Then Deploy
+
+on:
+  workflow_run:
+    workflows: ["Publish"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Connect And Pull
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: azureuser
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd /opt/app
+            ./regen.sh pop

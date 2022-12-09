@@ -1,5 +1,3 @@
-from requests import Response
-
 from app import config
 
 
@@ -36,12 +34,9 @@ def slice_on_4096(_input: list[str] | str, last="", acc=[]) -> list[str]:
 
 
 def get_cmd(update: dict) -> None | str:
-
     if message := update.get("message"):
-
         if text := message.get("text"):
             splitted = text.split(" ", 1)
-
             if len(splitted) < 2:
                 raise ValueError(
                     "Your command to the bot lacks needs arguments/parameters."
@@ -57,40 +52,45 @@ def get_cmd(update: dict) -> None | str:
                     raise_error(cmd, "bot", commands)
 
 
-def get_chatid(update: dict) -> int:
+def get_chatid(update: dict) -> None | int:
     if message := update.get("message"):
         if chat := message.get("chat"):
             if _id := chat.get("id"):
                 return _id
-    raise KeyError(f"Unable to extract 'chat_id' from {update}")
 
 
-def to_block(text: str) -> str:
+def as_block(text: str) -> str:
     return f"```\n{text.strip()}\n```"
 
 
-def reply(update: dict, message: str):
-    chat_id = get_chatid(update)
-    payload = {"chat_id": chat_id, "parse_mode": "Markdown"}
+def from_query(query) -> str:
+    if "result" in query:
+        return f"Command: `{query['cmd']}`. Result:\n{query['result']}"
+    else:
+        return f"Command: `{query['cmd']}`. Error:\n{query['error']}"
+
+
+def reply(query):
+    payload = {"chat_id": query["chat_id"], "parse_mode": "Markdown"}
     url = f"https://api.telegram.org/bot{config.token}/sendMessage"
-    slices = slice_on_4096(message)
+    slices = slice_on_4096(from_query(query))
 
     if not slices:
         raise ValueError(
-            f"No message could be constructed from this message: {message}"
+            f"No message could be constructed from this command: {query['cmd']}"
         )
 
     l = len(slices)
 
     if l == 1:
-        payload["text"] = to_block(message)
+        payload["text"] = as_block(slices[0])
         config.session.post(url, json=payload)
 
     else:
         warning = "The response is too large. Trimming down to 2 or 3 messages..."
-        payload["text"] = to_block(warning)
+        payload["text"] = warning
         config.session.post(url, json=payload)
 
-        for i, msg in enumerate(slices[:3]):
-            payload["text"] = f"{i+1}/{l}\n\n{to_block(msg)}"
+        for i, sli in enumerate(slices[:3]):
+            payload["text"] = f"{i+1}/{l}\n\n{as_block(sli)}"
             config.session.post(url, json=payload)

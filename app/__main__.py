@@ -1,9 +1,11 @@
-import cherrypy
 import logging
+from threading import Thread
 
-from app.proc import parse_validate, run_in_sub
-from app.funcs import get_cmd, reply
+import cherrypy
+
 from app import config
+from app.funcs import get_chatid, get_cmd, reply
+from app.proc import Query, consume, queue
 
 logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
@@ -18,28 +20,27 @@ class Webhook:
 
         update = cherrypy.request.json
 
-        try:
-            if cmd := get_cmd(update):
-                args = parse_validate(cmd)
-                res = run_in_sub(cmd, args)
-                reply(update, res)
-                logging.info(f"Ok")
-            else:
-                reply(
-                    update,
-                    "Unable to find any command in what you sent.",
-                )
-                logging.info(f"No valid command")
-
-        except Exception as error:
-            logging.info(f"Exception: {error}")
-            reply(update, str(error).strip())
-
-        finally:
-            return 200
+        if chat_id := get_chatid(update):
+            try:
+                if cmd := get_cmd(update):
+                    query = Query(cmd=cmd, chat_id=chat_id)
+                    queue.put_nowait(query)
+                    logging.info("Enqueue")
+                else:
+                    error = f"No valid command for {update}"
+                    reply(Query(error=error, chat_id=chat_id))
+                    logging.info(error)
+            except Exception as error:
+                reply(Query(**{"error": error, "chat_id": chat_id}))
+                logging.info(f"Exception: {error}")
+            finally:
+                return 200
 
 
 def main():
+    worker = Thread(target=consume, args=(queue,))
+    worker.start()
+
     global_config = {"server.socket_host": "0.0.0.0", "server.socket_port": config.port}
     cherrypy.config.update(global_config)
     cherrypy.quickstart(Webhook())

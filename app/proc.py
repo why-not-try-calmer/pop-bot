@@ -1,6 +1,9 @@
 import subprocess
+from collections import UserDict
+from queue import Queue
+from time import sleep
 
-from app.funcs import raise_error
+from app.funcs import raise_error, reply
 
 allowed_0 = [
     "apt",
@@ -61,3 +64,28 @@ def run_in_sub(cmd: str, args: list[str]) -> str:
             return res.stdout
     except TimeoutError:
         return f"Timed out: {cmd}"
+
+
+class Query(UserDict):
+    cmd: str
+    chat_id: int
+    result: str | None
+    error: str | None
+
+
+queue: Queue[Query] = Queue(maxsize=10)
+
+
+def consume(q: Queue):
+    while True:
+        if query := q.get():
+            try:
+                cmd = query["cmd"]
+                args = parse_validate(cmd)
+                res = run_in_sub(cmd, args)
+                query["result"] = res
+                reply(query)
+            except Exception as error:
+                query["error"] = error
+                reply(query)
+        sleep(0.01)
