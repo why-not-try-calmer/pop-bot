@@ -1,3 +1,5 @@
+from time import sleep
+
 from app import config
 
 
@@ -10,15 +12,18 @@ def raise_error(cmd: str, service: str, allowed: list[str]) -> str:
 commands = ["r", "run"]
 
 
-def slice_on_n(s: str, n=4096, acc: list[str] = []) -> list[str]:
+def slice_on_n(s: str, n=4096, acc=None) -> list[str]:
+    if acc is None:
+        acc = []
+
     if len(s) <= n:
         acc.append(s)
         return acc
 
     sli = s[:n]
     before_after = sli.rsplit("\n", 1)
-
     acc.append(before_after[0])
+
     return slice_on_n(
         (before_after[1] + s[n:] if len(before_after) == 2 else s[n:]),
         n,
@@ -73,17 +78,17 @@ def reply(query):
             f"No message could be constructed from this command: {query['cmd']}"
         )
 
-    l = len(slices)
-
-    if l == 1:
+    if len(slices) == 1:
         payload["text"] = as_block(slices[0])
         config.session.post(url, json=payload)
 
     else:
         warning = "The response is too large. Trimming down to 2 or 3 messages..."
         payload["text"] = warning
+        trimmed_down = slices[:3]
         config.session.post(url, json=payload)
 
-        for i, sli in enumerate(slices[:3]):
-            payload["text"] = f"{i+1}/{l}\n\n{as_block(sli)}"
+        for i, sli in enumerate(trimmed_down):
+            payload["text"] = f"{i+1}/{len(trimmed_down)}\n\n{as_block(sli)}"
             config.session.post(url, json=payload)
+            sleep(0.2)

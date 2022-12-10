@@ -3,12 +3,17 @@ from os import environ
 from requests import Session
 
 
+class SubConfig(NamedTuple):
+    timeout: int
+
+
 class Config(NamedTuple):
     token: str
     port: int
     bot_name: str
     endpoint_termination: str
     session: Session
+    subprocesses: SubConfig
 
 
 token = environ.get("TOKEN", "")
@@ -19,4 +24,5 @@ config = Config(
     environ.get("BOT_USERNAME", "pop"),
     f"bot{token}",
     Session(),
+    SubConfig(int(environ.get("SUBPROC_TIMEOUT", "15"))),
 )

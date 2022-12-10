@@ -1,7 +1,9 @@
 import subprocess
-from collections import UserDict
-from concurrent.futures import ThreadPoolExecutor
+from collections import UserDict, deque, namedtuple
+from concurrent.futures import Future, ThreadPoolExecutor
+from functools import reduce
 from queue import Queue
+from typing import Deque, NamedTuple
 
 from app.funcs import raise_error, reply
 
@@ -32,38 +34,49 @@ allowed_apt_1 = ["info", "list", "search", "show"]
 allowed_flatpak_1 = ["search"]
 
 
-def parse_validate(cmd: str) -> list[str]:
-    args = cmd.split(" ")
+def parse_validate(cmd: str) -> list[list[str]]:
+    un_piped = cmd.split("|")
+    un_piped_args = []
 
-    if not args[0] in allowed_0:
-        raise_error(args[0], "bash", allowed_0)
+    for args in un_piped:
+        split_args = args.strip().split(" ")
 
-    if args[0] == "apt":
-        if not args[1] in allowed_apt_1:
-            raise_error(args[1], "apt", allowed_apt_1)
+        if not split_args[0] in allowed_0:
+            raise_error(split_args[0], "bash", allowed_0)
 
-    if args[0] == "flatpak":
-        if not args[1] in allowed_flatpak_1:
-            raise_error(args[1], "flatpak", allowed_flatpak_1)
+        if split_args[0] == "apt":
+            if not split_args[1] in allowed_apt_1:
+                raise_error(split_args[1], "apt", allowed_apt_1)
 
-    return args
+        if split_args[0] == "flatpak":
+            if not split_args[1] in allowed_flatpak_1:
+                raise_error(split_args[1], "flatpak", allowed_flatpak_1)
+
+        un_piped_args.append(split_args)
+
+    return un_piped_args
 
 
-def run_in_sub(cmd: str, args: list[str]) -> str:
-    try:
-        res = subprocess.run(
+def run_in_sub(pipes: list[list[str]]) -> str:
+    def reducer(prev, args):
+        k = subprocess.Popen(
             args,
-            stdout=subprocess.PIPE,
+            stdin=prev.stdout,
             stderr=subprocess.PIPE,
-            timeout=15,
+            stdout=subprocess.PIPE,
             encoding="utf-8",
         )
-        if res.returncode != 0:
-            raise Exception(f"Failed! Errors: {res.stderr}")
-        else:
-            return res.stdout
-    except TimeoutError:
-        return f"Timed out: {cmd}"
+        prev.wait()
+        return k
+
+    start = subprocess.Popen(
+        pipes[0],
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        encoding="utf-8",
+    )
+    finale = reduce(reducer, pipes[1:], start)
+    return finale.stdout.read()  # type:ignore
 
 
 class Query(UserDict):
@@ -73,24 +86,37 @@ class Query(UserDict):
     error: str | None
 
 
+class Job(NamedTuple):
+    query: Query
+    future: Future[None]
+
+
 queue: Queue[Query] = Queue(maxsize=10)
 
 
 def consume(q: Queue):
-    def send_back_result(query: Query, result: str):
-        query["result"] = result
+    def process(query: Query, result=None):
+        if result:
+            query["result"] = result
+        else:
+            args = parse_validate(query["cmd"])
+            query["result"] = run_in_sub(args)
         reply(query)
 
     with ThreadPoolExecutor() as pool:
+        submitted: Deque[Job] = deque()
         while True:
             if query := q.get():
                 try:
-                    cmd = query["cmd"]
-                    args = parse_validate(cmd)
-                    future = pool.submit(run_in_sub, cmd, args)
-                    future.add_done_callback(
-                        lambda f: send_back_result(query, f.result())
-                    )
+                    future = pool.submit(process, query)
+                    next_job = Job(query, future)
+                    submitted.append(next_job)
+
+                    if submitted:
+                        prev_job: Job = submitted.popleft()
+                        prev_job.future.result(timeout=10)
+                        
+                    q.task_done()
                 except Exception as error:
                     query["error"] = error
                     reply(query)
