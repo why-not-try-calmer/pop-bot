@@ -4,8 +4,8 @@ from threading import Thread
 import cherrypy
 
 from app import config
-from app.funcs import get_chatid, get_cmd, reply
-from app.worker import Query, consume, queue
+from app.funcs import parse_query, reply
+from app.workers import cons_queue, consume_q, proc_queue, process_q
 
 
 class Webhook:
@@ -13,33 +13,43 @@ class Webhook:
     @cherrypy.tools.json_in()  # type: ignore
     @cherrypy.tools.json_out()  # type: ignore
     def pop(self, rec_termination: str):
+
         if rec_termination != config.endpoint_termination:
             return 404
 
         update = cherrypy.request.json
 
-        if chat_id := get_chatid(update):
+        if query := parse_query(update):
             try:
-                if cmd := get_cmd(update):
-                    query = Query(cmd=cmd, chat_id=chat_id)
-                    queue.put_nowait(query)
-                    logging.info("Enqueued.")
+                if "error" in query:
+                    reply(query)
+                    logging.info(f"Invalid query: {query}")
+
                 else:
-                    error = f"No valid command for {update}"
-                    reply(Query(error=error, chat_id=chat_id))
-                    logging.info(error)
+                    proc_queue.put_nowait(query)
+                    logging.info(f"Enqueuing process_q: {query}")
+
             except Exception as error:
-                reply(Query(error=error, chat_id=chat_id))
-                logging.info(f"Exception: {error}")
-            finally:
-                return 200
+                query.error = str(error)
+                reply(query)
+
+        return 200
+
+
+def run_workers(daemon=False):
+    proc_worker = Thread(target=process_q, args=(proc_queue, cons_queue), daemon=daemon)
+    cons_worker = Thread(target=consume_q, args=(cons_queue,), daemon=daemon)
+    cons_worker.start()
+    proc_worker.start()
 
 
 def main():
-    worker = Thread(target=consume, args=(queue,))
-    worker.start()
-
-    global_config = {"server.socket_host": "0.0.0.0", "server.socket_port": config.port}
+    run_workers()
+    global_config = {
+        "server.socket_host": "0.0.0.0",
+        "server.socket_port": config.port,
+        "environment": "production",
+    }
     cherrypy.config.update(global_config)
     cherrypy.quickstart(Webhook())
 

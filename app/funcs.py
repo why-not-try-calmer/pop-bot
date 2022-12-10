@@ -1,15 +1,16 @@
 from time import sleep
+from timeit import default_timer
+from requests import Response
 
 from app import config, logging
+from app.types import Cmd, Query
 
 
-def raise_error(cmd: str, service: str, allowed: list[str]) -> str:
-    raise ValueError(
-        f"This {service.upper()} command is not allowed: {cmd}. Allowed {service} commands are: {', '.join(allowed)}"
-    )
+def to_error(cmd: str, service: str, allowed: list[str]) -> str:
+    return f"This {service} command or executable is not allowed: {cmd}. Allowed {service} commands are: {', '.join(allowed)}."
 
 
-commands = {"r", "run", "run@pop_os_bot"}
+commands = {"r": Cmd(1), "run": Cmd(1), "help": Cmd(2), "start": Cmd(2)}
 
 
 def slice_on_n(s: str, n=4096, acc=None) -> list[str]:
@@ -31,28 +32,55 @@ def slice_on_n(s: str, n=4096, acc=None) -> list[str]:
     )
 
 
-def get_cmd(update: dict) -> None | str:
+def parse_query(update: dict) -> None | Query:
+    chat_id = None
+    text = None
+
     if message := update.get("message"):
-        if text := message.get("text"):
-            splitted = text.split(" ", 1)
-            if len(splitted) < 2:
-                raise ValueError(
-                    "Your command to the bot lacks needs arguments/parameters."
-                )
-            cmd, tail = splitted[0][1:], splitted[1]
-            got = next(filter(lambda w: cmd == w, commands), None)
+        if any(
+            k in message or k in update
+            for k in ["reply_to_message", "callback_query", "edited_message"]
+        ):
+            return
 
-            if got in commands:
-                return tail
-            else:
-                raise_error(cmd, "bot", list(commands))
-
-
-def get_chatid(update: dict) -> None | int:
-    if message := update.get("message"):
+        text = message.get("text")
         if chat := message.get("chat"):
-            if _id := chat.get("id"):
-                return _id
+            chat_id = chat.get("id")
+
+    if not (chat_id and text):
+        return
+
+    splitted = text.split(" ", 1)
+    head = splitted[0][1:]
+    cmd = head.split("@")[0]
+
+    if cmd in commands:
+
+        match commands[cmd]:
+            case Cmd.RUN:
+                if len(splitted) == 1:
+                    error = "Your command has no argument or parameter."
+                    return Query(chat_id=chat_id, error=error, input=text)
+                else:
+                    return Query(
+                        started=default_timer(),
+                        input=splitted[1],
+                        chat_id=chat_id,
+                        cmd_type=commands[cmd],
+                    )
+            case Cmd.HELP:
+                return Query(
+                    started=default_timer(),
+                    input=text,
+                    chat_id=chat_id,
+                    cmd_type=commands[cmd],
+                )
+
+            case _:
+                return
+    else:
+        error = f"Unable to match your message with any command: {text}"
+        return Query(chat_id=chat_id, error=error, input=text)
 
 
 def as_block(text: str) -> str:
@@ -61,34 +89,62 @@ def as_block(text: str) -> str:
 
 def as_text(query) -> str:
     if "result" in query:
-        return f"Command: `{query['cmd']}`. Result:\n{query['result']}"
+        return f"Command: `{query.input}`. Result:\n{query.result}"
+    elif "error" in query:
+        return f"Command: `{query.input}`. Error:\n{query.error}"
     else:
-        return f"Command: `{query['cmd']}`. Error:\n{query['error']}"
+        return "Missing 'result' or 'error'"
 
 
-def reply(query):
-    payload = {"chat_id": query["chat_id"], "parse_mode": "Markdown"}
+def safe_reply(payload: dict) -> Response | None:
     url = f"https://api.telegram.org/bot{config.token}/sendMessage"
+    try:
+        return config.session.post(url, json=payload)
+    except Exception as exception:
+        logging.error(str(exception))
+
+
+def reply(query: Query):
+    perf_report = (
+        f"Handled and processed in {round(default_timer() - query.started,2)}s.\n"
+        if "started" in query
+        else ""
+    )
+    payload = {
+        "chat_id": query.chat_id,
+        "parse_mode": "Markdown",
+        "text": perf_report,
+    }
     slices = slice_on_n(as_text(query))
 
     match len(slices):
+
         case 0:
             raise ValueError(
-                f"No message could be constructed from this command: {query['cmd']}"
+                f"No message could be constructed from this command: {query.args}"
             )
+
         case 1:
-            payload["text"] = as_block(slices[0])
-            config.session.post(url, json=payload)
+            payload["text"] += as_block(slices[0])
+
+            if "test" in query:
+                print(f"Testing: {payload}")
+                return
+
+            safe_reply(payload)
+
         case _:
             warning = "The response is too large. Trimming down to 2 or 3 messages..."
-            payload["text"] = warning
+            payload["text"] += warning
             trimmed_down = slices[:3]
-            config.session.post(url, json=payload)
 
-            try:
-                for i, sli in enumerate(trimmed_down):
-                    payload["text"] = f"{i+1}/{len(trimmed_down)}\n\n{as_block(sli)}"
-                    config.session.post(url, json=payload)
-                    sleep(0.2)
-            except Exception as error:
-                logging.warn(error)
+            if "test" in query:
+                print(f"Testing: {trimmed_down}")
+                return
+
+            safe_reply(payload)
+
+            for i, sli in enumerate(trimmed_down):
+                payload["text"] = f"{i+1}/{len(trimmed_down)}\n\n{as_block(sli)}"
+                safe_reply(payload)
+                sleep(0.2)

@@ -3,4 +3,4 @@ docker run \
     -v $(pwd)/app:/opt/app \
     -p 8000:8000 \
     --env-file=$(pwd)/.env \
-    pop-ready:latest bash -c "cd /opt && python3 -m app"
+    pop-ready:latest
