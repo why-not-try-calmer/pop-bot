@@ -59,16 +59,17 @@ def parse_validate(cmd: str) -> list[list[str]]:
 
 
 def run_in_sub(pipes: list[list[str]]) -> str:
-    def reducer(prev, args):
-        k = subprocess.Popen(
+    def reducer(prev_proc: subprocess.Popen, args: list[str]):
+        proc = subprocess.Popen(
             args,
-            stdin=prev.stdout,
+            stdin=prev_proc.stdout,
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
             encoding="utf-8",
         )
-        prev.wait()
-        return k
+        print("WAITING!!!")
+        prev_proc.wait(timeout=5)
+        return proc
 
     start = subprocess.Popen(
         pipes[0],
@@ -77,7 +78,9 @@ def run_in_sub(pipes: list[list[str]]) -> str:
         encoding="utf-8",
     )
     finale = reduce(reducer, pipes[1:], start)
-    return finale.stdout.read()  # type:ignore
+    output = finale.stdout.read()  # type:ignore
+    finale.terminate()
+    return output
 
 
 class Query(UserDict):

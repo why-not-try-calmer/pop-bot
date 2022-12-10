@@ -46,3 +46,20 @@ def test_get_parse_validate_run():
     args = parse_validate(cmd)
     result = run_in_sub(args)
     assert result.strip() == "5"
+
+
+"""
+def test_flatpak_search():
+    update = {
+        "message": {
+            "text": "/r flatpak search qgis",
+            "chat": {"id": 1234},
+        }
+    }
+    cmd = get_cmd(update)
+    if not cmd:
+        raise AssertionError
+    args = parse_validate(cmd)
+    result = run_in_sub(args)
+    assert len(result.split("\n")) >= 2
+"""
