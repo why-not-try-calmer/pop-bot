@@ -2,6 +2,8 @@ from typing import NamedTuple
 from os import environ
 from requests import Session
 
+import logging
+
 
 class SubConfig(NamedTuple):
     timeout: int
@@ -26,3 +28,6 @@ config = Config(
     Session(),
     SubConfig(int(environ.get("SUBPROC_TIMEOUT", "15"))),
 )
+
+
+logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)

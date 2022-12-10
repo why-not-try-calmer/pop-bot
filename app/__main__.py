@@ -7,8 +7,6 @@ from app import config
 from app.funcs import get_chatid, get_cmd, reply
 from app.worker import Query, consume, queue
 
-logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
-
 
 class Webhook:
     @cherrypy.expose()

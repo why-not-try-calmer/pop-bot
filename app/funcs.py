@@ -1,6 +1,6 @@
 from time import sleep
 
-from app import config
+from app import config, logging
 
 
 def raise_error(cmd: str, service: str, allowed: list[str]) -> str:
@@ -9,7 +9,7 @@ def raise_error(cmd: str, service: str, allowed: list[str]) -> str:
     )
 
 
-commands = ["r", "run"]
+commands = {"r", "run", "run@pop_os_bot"}
 
 
 def slice_on_n(s: str, n=4096, acc=None) -> list[str]:
@@ -40,14 +40,12 @@ def get_cmd(update: dict) -> None | str:
                     "Your command to the bot lacks needs arguments/parameters."
                 )
             cmd, tail = splitted[0][1:], splitted[1]
+            got = next(filter(lambda w: cmd == w, commands), None)
 
-            match next(filter(lambda w: cmd == w, commands), None):
-                case "r":
-                    return tail
-                case "run":
-                    return tail
-                case _:
-                    raise_error(cmd, "bot", commands)
+            if got in commands:
+                return tail
+            else:
+                raise_error(cmd, "bot", list(commands))
 
 
 def get_chatid(update: dict) -> None | int:
@@ -73,22 +71,24 @@ def reply(query):
     url = f"https://api.telegram.org/bot{config.token}/sendMessage"
     slices = slice_on_n(as_text(query))
 
-    if not slices:
-        raise ValueError(
-            f"No message could be constructed from this command: {query['cmd']}"
-        )
-
-    if len(slices) == 1:
-        payload["text"] = as_block(slices[0])
-        config.session.post(url, json=payload)
-
-    else:
-        warning = "The response is too large. Trimming down to 2 or 3 messages..."
-        payload["text"] = warning
-        trimmed_down = slices[:3]
-        config.session.post(url, json=payload)
-
-        for i, sli in enumerate(trimmed_down):
-            payload["text"] = f"{i+1}/{len(trimmed_down)}\n\n{as_block(sli)}"
+    match len(slices):
+        case 0:
+            raise ValueError(
+                f"No message could be constructed from this command: {query['cmd']}"
+            )
+        case 1:
+            payload["text"] = as_block(slices[0])
             config.session.post(url, json=payload)
-            sleep(0.2)
+        case _:
+            warning = "The response is too large. Trimming down to 2 or 3 messages..."
+            payload["text"] = warning
+            trimmed_down = slices[:3]
+            config.session.post(url, json=payload)
+
+            try:
+                for i, sli in enumerate(trimmed_down):
+                    payload["text"] = f"{i+1}/{len(trimmed_down)}\n\n{as_block(sli)}"
+                    config.session.post(url, json=payload)
+                    sleep(0.2)
+            except Exception as error:
+                logging.warn(error)
