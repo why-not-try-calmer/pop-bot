@@ -6,7 +6,7 @@ import requests
 from app.__main__ import parse_query, run_workers
 from app.funcs import parse_query, slice_on_n
 from app.types import Cmd
-from app.workers import Query, cons_queue, validate_or_err, proc_queue, run_in_sub
+from app.workers import Query, cons_queue, run_task, try_to_invalidate, proc_queue
 
 
 def test_get_cmd():
@@ -36,9 +36,9 @@ def test_slices():
 
 def test_sub():
     cmd = "apt list --installed"
-    args = validate_or_err(cmd)
-    result = run_in_sub(args)
-    assert len(result.split("\n")) > 250
+    if not try_to_invalidate(cmd):
+        result = run_task(cmd)
+        assert len(result.split("\n")) > 250
 
 
 def test_get_parse_validate_run():
@@ -48,10 +48,10 @@ def test_get_parse_validate_run():
             "chat": {"id": 1234},
         }
     }
-    query = parse_query(update)
-    args = validate_or_err(query.input)
-    result = run_in_sub(args)
-    assert result.strip() == "5"
+    if query := parse_query(update):
+        if not try_to_invalidate(query.input):
+            result = run_task(query.input)
+            assert result.strip() == "5"
 
 
 """ REQUIRES FLATPAK TO BE SET
