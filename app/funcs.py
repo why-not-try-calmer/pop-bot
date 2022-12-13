@@ -6,8 +6,9 @@ from app import config, logging
 from app.types import Cmd, Query
 
 
-def to_error(cmd: str, service: str, allowed: list[str]) -> str:
+def to_error(cmd: str, service: str, allowed) -> str:
     return f"This {service} command or executable is not allowed: {cmd}. Allowed {service} commands are: {', '.join(allowed)}."
+     
 
 
 commands = {"r": Cmd(1), "run": Cmd(1), "help": Cmd(2), "start": Cmd(2)}
