@@ -3,10 +3,11 @@ from time import sleep
 
 import requests
 
-from app.__main__ import parse_query, run_workers
+from app import cons_queue, proc_queue
+from app.__main__ import parse_query, start_workers
 from app.funcs import parse_query, slice_on_n
-from app.types import Cmd
-from app.workers import Query, cons_queue, run_task, try_to_invalidate, proc_queue
+from app.types import Cmd, Query
+from app.workers import run_task, try_to_invalidate
 
 
 def test_get_cmd():
@@ -50,8 +51,7 @@ def test_get_parse_validate_run():
     }
     if query := parse_query(update):
         if not try_to_invalidate(query.input):
-            result = run_task(query.input)
-            assert result.strip() == "5"
+            assert run_task(query.input)
 
 
 """ REQUIRES FLATPAK TO BE SET
@@ -72,7 +72,7 @@ def test_flatpak_search():
 
 
 def test_worker():
-    run_workers(daemon=True)
+    start_workers()
 
     input1 = "apt list --installed | wc -l | wc -c"
     input2 = "echo 123"

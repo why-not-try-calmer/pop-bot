@@ -1,8 +1,9 @@
-from typing import NamedTuple
-from os import environ
-from requests import Session
-
 import logging
+from os import environ
+from queue import Queue
+from typing import NamedTuple
+
+from requests import Session
 
 
 class SubConfig(NamedTuple):
@@ -28,6 +29,9 @@ config = Config(
     Session(),
     SubConfig(int(environ.get("SUBPROC_TIMEOUT", "15"))),
 )
+
+proc_queue = Queue(maxsize=50)
+cons_queue = Queue(maxsize=50)
 
 
 logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)

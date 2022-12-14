@@ -3,9 +3,9 @@ from threading import Thread
 
 import cherrypy
 
-from app import config
+from app import config, cons_queue, proc_queue
 from app.funcs import parse_query, reply
-from app.workers import cons_queue, consume_q, proc_queue, process_q
+from app.workers import consume, process
 
 
 class Webhook:
@@ -20,7 +20,9 @@ class Webhook:
         update = cherrypy.request.json
 
         if query := parse_query(update):
+
             try:
+
                 if "error" in query:
                     reply(query)
                     logging.info(f"Invalid query: {query}")
@@ -36,15 +38,15 @@ class Webhook:
         return 200
 
 
-def run_workers(daemon=False):
-    proc_worker = Thread(target=process_q, args=(proc_queue, cons_queue), daemon=daemon)
-    cons_worker = Thread(target=consume_q, args=(cons_queue,), daemon=daemon)
+def start_workers(daemon=True):
+    proc_worker = Thread(target=process, args=(proc_queue, cons_queue), daemon=daemon)
+    cons_worker = Thread(target=consume, args=(cons_queue,), daemon=daemon)
     cons_worker.start()
     proc_worker.start()
 
 
 def main():
-    run_workers()
+    start_workers()
     global_config = {
         "server.socket_host": "0.0.0.0",
         "server.socket_port": config.port,

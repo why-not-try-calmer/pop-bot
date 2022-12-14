@@ -1,5 +1,6 @@
 from time import sleep
 from timeit import default_timer
+
 from requests import Response
 
 from app import config, logging
