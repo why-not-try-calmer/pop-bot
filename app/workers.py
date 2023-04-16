@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
@@ -70,7 +72,7 @@ def process(proc_q: Queue, res_q: Queue):
         while True:
             query = proc_q.get()
             logger.info(
-                f"Dequeuing process_q: {query.input}. Remaining on queue: {proc_q.qsize()}"
+                f"Dequeuing process_q: {query.input}. Remaining on queue: {proc_q.qsize()}",
             )
             try:
                 match query.cmd_type:
@@ -96,7 +98,7 @@ def consume(res_q: Queue):
     while True:
         query = res_q.get()
         logger.info(
-            f"Dequeuing consume_q: {query.input}. Remaining on queue: {res_q.qsize()}"
+            f"Dequeuing consume_q: {query.input}. Remaining on queue: {res_q.qsize()}",
         )
         try:
             if "future" in query:
@@ -104,7 +106,7 @@ def consume(res_q: Queue):
         except Exception as error:
             query.error = str(error)
             logger.error(
-                f"(consume_q) Ran into an exception after unwrapping query: {str(error)}. Traceback: {error.with_traceback}"
+                f"Ran into an exception after unwrapping query: {error}. Traceback: {error.with_traceback}",
             )
         finally:
             if "future" in query and query.future.running():

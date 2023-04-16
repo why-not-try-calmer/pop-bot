@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import math
+from logging import getLogger
 from time import sleep
 
 import requests
 
-from app import config, proc_queue, cons_queue
+from app import config, cons_queue, proc_queue
 from app.__main__ import parse_query, start_workers
 from app.funcs import parse_query, slice_on_n
 from app.types import Cmd, Query
 from app.workers import run_task, try_to_invalidate
+
+logger = getLogger(__name__)
 
 
 def test_config():
@@ -27,12 +32,12 @@ def test_get_chat_id():
 
 def test_get_help():
     update = {"message": {"text": "/help", "chat": {"id": 1234}}}
-    query = parse_query(update)
+    parse_query(update)
 
 
 def test_slices():
     response = requests.get(
-        "https://baconipsum.com/api/?type=meat-and-filler&paras=15&format=text"
+        "https://baconipsum.com/api/?type=meat-and-filler&paras=15&format=text",
     )
     text = response.text
     expected_slices = math.ceil(len(text) / 4096)
@@ -52,7 +57,7 @@ def test_get_parse_validate_run():
         "message": {
             "text": "/r apt list --installed | wc -l | wc -c",
             "chat": {"id": 1234},
-        }
+        },
     }
     query = parse_query(update)
     assert query
@@ -64,12 +69,12 @@ def test_flatpak_search():
         "message": {
             "text": "/r flatpak search qgis",
             "chat": {"id": 1234},
-        }
+        },
     }
     query = parse_query(update)
     assert query
     result = run_task(query.input, timeout=12)
-    print(result)
+    logger.info(result)
     assert len(result.split("\n")) >= 2
 
 
@@ -79,13 +84,14 @@ def test_long_command():
         "message": {
             "text": f"/r {input1}",
             "chat": {"id": 1234},
-        }
+        },
     }
     query = parse_query(update)
     assert query
     result = run_task(query.input)
     final_result = result.split("\n")[-1]
-    assert int(final_result) > 1000 
+    assert int(final_result) > 1000
+
 
 def test_worker():
     start_workers()

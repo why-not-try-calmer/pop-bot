@@ -8,7 +8,7 @@ download_homepage="https://pop.system76.com/"
 download_url="https://iso.pop-os.org/22.04/amd64/intel/25/pop-os_22.04_amd64_intel_25.iso"
 
 unsq=$(which unsquashfs)
-rootfs_dir_path="${user_downloads_dir}/rootfs"    
+rootfs_dir_path="${user_downloads_dir}/rootfs"
 unsquash_dir_path="${user_downloads_dir}/unquashfs"
 default_iso_name="pop_os.iso"
 default_docker_img_name="pop-docker"
@@ -17,7 +17,7 @@ function check_requisites {
     needed_executables=("unsquashfs" "docker" "tar")
     for exe in "${needed_executables[@]}"; do
         type $exe &> /dev/null
-        if [[ "$?" -ne 0 ]]; then echo "Unable to find executable '$exe'. Aborting."; exit 1; fi 
+        if [[ "$?" -ne 0 ]]; then echo "Unable to find executable '$exe'. Aborting."; exit 1; fi
     done
     return 0
     if ! [[ -f "$download_path" ]]
@@ -36,7 +36,7 @@ function clean_up {
 
 function confirm_checksum {
     if [[ "$skip_checksum" -eq 1 ]]
-    then 
+    then
         echo "Skipping checksum."
         return 0
     fi
@@ -48,11 +48,11 @@ function confirm_checksum {
 }
 
 function resolve_options {
-    case "${options[@]}" in 
-        *"--download-iso" )             
+    case "${options[@]}" in
+        *"--download-iso" )
             if ! [[ -f "$download_path" ]]
             then
-                echo "Downloading ISO now..."; 
+                echo "Downloading ISO now...";
                 wget -O "$download_path" "$download_url"
             else
                 echo "ISO already exists."
@@ -80,14 +80,14 @@ function create_docker_img {
 
     echo "Creating directories...[1/4]"
     mkdir $rootfs_dir_path $unsquash_dir_path
-    
+
     echo "Mounting image...[2/4]"
     sudo mount -o loop $download_path $rootfs_dir_path
     fs_path=$(find $download_path -type f | grep filesystem.squashfs)
-    
+
     echo "Unsquashing....[3/4]"
     sudo unsquashfs -f -d "${unsquash_dir_path}/" $fs_path
-    
+
     echo "Compressing and importing to Docker...[4/4]"
     sudo tar -C $unsquash_dir_path -c $user_downloads_dir | docker import - $default_docker_img_name
 }

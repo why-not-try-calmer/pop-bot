@@ -1,19 +1,21 @@
+from __future__ import annotations
+
 import logging
-from os import environ
 
 from requests import Response
 
-from app import Config, config
+from app import config
 
 logger = logging.getLogger(__name__)
-url = f"https://api.telegram.org/bot{Config.token}/sendMessage"
+url = f"https://api.telegram.org/bot{config.token}/sendMessage"
 
 
 def safe_reply(payload: dict) -> Response | None:
     if config.is_production:
-        logger.info(payload)
-    else:
-        try:    
+        try:
             return config.session.post(url, json=payload)
         except Exception as exception:
-            logger.error(str(exception))
+            logger.error(exception)
+    else:
+        logger.info(payload)
+        logger.info(f"Characters in payload['text']: {len(payload['text'])}")

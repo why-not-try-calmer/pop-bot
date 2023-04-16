@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from threading import Thread
 
@@ -49,4 +51,7 @@ def main():
 
 
 if __name__ == "__main__":
+    if not config.is_production:
+        logger = logging.getLogger(__name__)
+        logger.info(f"Starting development server with: {config}")
     main()

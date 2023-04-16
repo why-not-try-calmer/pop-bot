@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from os import environ
 from queue import Queue
@@ -29,7 +31,7 @@ config = Config(
     f"bot{token}",
     Session(),
     SubConfig(int(environ.get("SUBPROC_TIMEOUT", "15"))),
-    int(environ.get("PROD", 1)) == 1
+    int(environ.get("PROD", 1)) == 1,
 )
 
 proc_queue = Queue(maxsize=50)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from time import sleep
 from timeit import default_timer
 
@@ -54,7 +56,6 @@ def parse_query(update: dict) -> None | Query:
     cmd = head.split("@")[0]
 
     if cmd in commands:
-
         match commands[cmd]:
             case Cmd.RUN:
                 if len(splitted) == 1:
@@ -111,7 +112,7 @@ def reply(query: Query):
     match len(slices):
         case 0:
             raise ValueError(
-                f"No message could be constructed from this command: {query.args}"
+                f"No message could be constructed from this command: {query.args}",
             )
         case 1:
             payload["text"] += as_block(slices[0])
@@ -123,6 +124,6 @@ def reply(query: Query):
             safe_reply(payload)
 
             for i, sli in enumerate(trimmed_down):
-                payload["text"] = f"{i+1}/{len(trimmed_down)}\n\n{as_block(sli)}"
+                payload["text"] += f"{i+1}/{len(trimmed_down)}\n\n{as_block(sli)}"
                 safe_reply(payload)
                 sleep(0.2)

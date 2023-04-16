@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from concurrent.futures import Future
 from enum import Enum, auto
 from typing import Any

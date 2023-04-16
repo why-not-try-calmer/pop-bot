@@ -1,7 +1,7 @@
 [![Test](https://github.com/why-not-try-calmer/pop-bot/actions/workflows/test.yml/badge.svg)](https://github.com/why-not-try-calmer/pop-bot/actions/workflows/test.yml) [![Publish](https://github.com/why-not-try-calmer/pop-bot/actions/workflows/publish.yml/badge.svg)](https://github.com/why-not-try-calmer/pop-bot/actions/workflows/publish.yml)
 
 ## About
-This repository implements a minimal [Telegram bot](https://t.me/pop_os_bot). It is an experiment for providing users with a concrete point of reference when supporting them over Telegram. 
+This repository implements a minimal [Telegram bot](https://t.me/pop_os_bot). It is an experiment for providing users with a concrete point of reference when supporting them over Telegram.
 
 Since the bot has access to an out-of-the-box installment of Pop!, it can help them find meaningful differences with their configuration. It can also be used to demo commands and illustrate answers to technical questions.
 
@@ -18,7 +18,7 @@ Tests will run as-is if you happen to run them on Ubuntu. Else remove those whos
 Profile while testing with:
 
     python3 -m cProfile -o profile -m pytest test -s
-    
+
 Then `cd` to `scripts` an analyse with
 
     python3 analyse.py profile
