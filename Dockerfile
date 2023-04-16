@@ -1,5 +1,5 @@
 # Set up sytem and install user
-FROM nycticoracs/pop_os:22.04
+FROM nycticoracs/pop_os:latest
 RUN apt update -y && \
     apt install python3-pip -y && \
     useradd -ms /bin/bash botuser
