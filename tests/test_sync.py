@@ -42,9 +42,9 @@ def test_slices():
 
 def test_sub():
     cmd = "apt list --installed"
-    if not try_to_invalidate(cmd):
-        result = run_task(cmd)
-        assert len(result.split("\n")) > 250
+    assert try_to_invalidate(cmd) is None
+    result = run_task(cmd)
+    assert len(result.split("\n")) > 250
 
 
 def test_get_parse_validate_run():
@@ -54,12 +54,11 @@ def test_get_parse_validate_run():
             "chat": {"id": 1234},
         }
     }
-    if query := parse_query(update):
-        if not try_to_invalidate(query.input):
-            assert run_task(query.input)
+    query = parse_query(update)
+    assert query
+    assert run_task(query.input)
 
 
-""" REQUIRES FLATPAK TO BE SET
 def test_flatpak_search():
     update = {
         "message": {
@@ -67,14 +66,26 @@ def test_flatpak_search():
             "chat": {"id": 1234},
         }
     }
-    cmd = get_cmd(update)
-    if not cmd:
-        raise AssertionError
-    args = parse_validate(cmd)
-    result = run_in_sub(args)
+    query = parse_query(update)
+    assert query
+    result = run_task(query.input)
+    print(result)
     assert len(result.split("\n")) >= 2
-"""
 
+
+def test_long_command():
+    input1 = "apt list --installed | wc -l"
+    update = {
+        "message": {
+            "text": f"/r {input1}",
+            "chat": {"id": 1234},
+        }
+    }
+    query = parse_query(update)
+    assert query
+    result = run_task(query.input)
+    final_result = result.split("\n")[-1]
+    assert int(final_result) > 1000 
 
 def test_worker():
     start_workers()
@@ -84,6 +95,6 @@ def test_worker():
     query2 = Query(input=input2, chat_id=1234, test=True, started=0, cmd_type=Cmd.RUN)
     proc_queue.put(query1)
     proc_queue.put(query2)
-    sleep(5)
+    sleep(3)
     assert proc_queue.qsize() == 0
     assert cons_queue.qsize() == 0
