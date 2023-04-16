@@ -10,7 +10,15 @@ class Cmd(Enum):
     HELP = auto()
 
 
-class Query(dict):
+class GettAble(dict):
+    def __getattribute__(self, k: str) -> Any:
+        return super().__getitem__(k)
+
+    def __setattr__(self, k, v):
+        super().__setitem__(k, v)
+
+
+class Query(GettAble):
     input: str
     started: float
     chat_id: int
@@ -20,8 +28,8 @@ class Query(dict):
     error: str | None
     test: bool | None
 
-    def __getattribute__(self, k: str) -> Any:
-        return super().__getitem__(k)
 
-    def __setattr__(self, k, v):
-        super().__setitem__(k, v)
+class Payload(GettAble):
+    chat_id: int
+    parse_mode: str
+    text: str

@@ -4,7 +4,7 @@ from time import sleep
 from timeit import default_timer
 
 from app.io import safe_reply
-from app.types import Cmd, Query
+from app.types import Cmd, Payload, Query
 
 
 def to_error(cmd: str, service: str, allowed) -> str:
@@ -102,11 +102,11 @@ def reply(query: Query):
         if "started" in query
         else ""
     )
-    payload = {
-        "chat_id": query.chat_id,
-        "parse_mode": "Markdown",
-        "text": perf_report,
-    }
+    payload = Payload(
+        chat_id=query.chat_id,
+        parse_mode="Markdown",
+        text=perf_report,
+    )
     slices = slice_on_n(as_text(query))
 
     match len(slices):
@@ -115,15 +115,15 @@ def reply(query: Query):
                 f"No message could be constructed from this command: {query.args}",
             )
         case 1:
-            payload["text"] += as_block(slices[0])
+            payload.text += as_block(slices[0])
             safe_reply(payload)
         case _:
             warning = "The response is too large. Trimming down to 2 or 3 messages..."
-            payload["text"] += warning
+            payload.text += warning
             trimmed_down = slices[:3]
             safe_reply(payload)
 
             for i, sli in enumerate(trimmed_down):
-                payload["text"] += f"{i+1}/{len(trimmed_down)}\n\n{as_block(sli)}"
+                payload.text += f"{i+1}/{len(trimmed_down)}\n\n{as_block(sli)}"
                 safe_reply(payload)
                 sleep(0.2)

@@ -6,4 +6,4 @@ docker run \
     -p 8000:8000 \
     -e PROD=0 \
     -e TOKEN=abc \
-    pop-docker:latest 
+    pop-docker:latest
