@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from threading import Thread
 
@@ -13,28 +15,20 @@ class Webhook:
     @cherrypy.tools.json_in()  # type: ignore
     @cherrypy.tools.json_out()  # type: ignore
     def pop(self, rec_termination: str):
-
         if rec_termination != config.endpoint_termination:
             return 404
-
         update = cherrypy.request.json
-
         if query := parse_query(update):
-
             try:
-
                 if "error" in query:
                     reply(query)
                     logging.info(f"Invalid query: {query}")
-
                 else:
                     proc_queue.put_nowait(query)
                     logging.info(f"Enqueuing process_q: {query}")
-
             except Exception as error:
                 query.error = str(error)
                 reply(query)
-
         return 200
 
 
@@ -57,4 +51,7 @@ def main():
 
 
 if __name__ == "__main__":
+    if not config.is_production:
+        logger = logging.getLogger(__name__)
+        logger.info(f"Starting development server with: {config}")
     main()
