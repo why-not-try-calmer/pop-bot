@@ -28,4 +28,4 @@ jobs:
           pre-commit run --all-files
 
       - name: Test with pytest
-        run: ./scripts/test.sh
+        run: ./scripts/ci/tests.sh
