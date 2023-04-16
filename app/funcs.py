@@ -1,15 +1,12 @@
 from time import sleep
 from timeit import default_timer
 
-from requests import Response
-
-from app import config, logging
+from app.io import safe_reply
 from app.types import Cmd, Query
 
 
 def to_error(cmd: str, service: str, allowed) -> str:
     return f"This {service} command or executable is not allowed: {cmd}. Allowed {service} commands are: {', '.join(allowed)}."
-     
 
 
 commands = {"r": Cmd(1), "run": Cmd(1), "help": Cmd(2), "start": Cmd(2)}
@@ -98,14 +95,6 @@ def as_text(query) -> str:
         return "Missing 'result' or 'error'"
 
 
-def safe_reply(payload: dict) -> Response | None:
-    url = f"https://api.telegram.org/bot{config.token}/sendMessage"
-    try:
-        return config.session.post(url, json=payload)
-    except Exception as exception:
-        logging.error(str(exception))
-
-
 def reply(query: Query):
     perf_report = (
         f"Handled and processed in {round(default_timer() - query.started,2)}s.\n"
@@ -120,30 +109,17 @@ def reply(query: Query):
     slices = slice_on_n(as_text(query))
 
     match len(slices):
-
         case 0:
             raise ValueError(
                 f"No message could be constructed from this command: {query.args}"
             )
-
         case 1:
             payload["text"] += as_block(slices[0])
-
-            if "test" in query:
-                print(f"Testing: {payload}")
-                return
-
             safe_reply(payload)
-
         case _:
             warning = "The response is too large. Trimming down to 2 or 3 messages..."
             payload["text"] += warning
             trimmed_down = slices[:3]
-
-            if "test" in query:
-                print(f"Testing: {trimmed_down}")
-                return
-
             safe_reply(payload)
 
             for i, sli in enumerate(trimmed_down):

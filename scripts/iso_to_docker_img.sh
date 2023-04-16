@@ -11,7 +11,7 @@ unsq=$(which unsquashfs)
 rootfs_dir_path="${user_downloads_dir}/rootfs"    
 unsquash_dir_path="${user_downloads_dir}/unquashfs"
 default_iso_name="pop_os.iso"
-default_docker_img_name="pop-os"
+default_docker_img_name="pop-docker"
 
 function check_requisites {
     needed_executables=("unsquashfs" "docker" "tar")

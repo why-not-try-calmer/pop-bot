@@ -3,11 +3,16 @@ from time import sleep
 
 import requests
 
-from app import cons_queue, proc_queue
+from app import config, proc_queue, cons_queue
 from app.__main__ import parse_query, start_workers
 from app.funcs import parse_query, slice_on_n
 from app.types import Cmd, Query
 from app.workers import run_task, try_to_invalidate
+
+
+def test_config():
+    assert config.port == 8000
+    assert not config.is_production
 
 
 def test_get_cmd():
@@ -73,13 +78,12 @@ def test_flatpak_search():
 
 def test_worker():
     start_workers()
-
     input1 = "apt list --installed | wc -l | wc -c"
     input2 = "echo 123"
     query1 = Query(input=input1, chat_id=1234, test=True, started=0, cmd_type=Cmd.RUN)
     query2 = Query(input=input2, chat_id=1234, test=True, started=0, cmd_type=Cmd.RUN)
-    proc_queue.put_nowait(query1)
-    proc_queue.put_nowait(query2)
+    proc_queue.put(query1)
+    proc_queue.put(query2)
     sleep(5)
     assert proc_queue.qsize() == 0
     assert cons_queue.qsize() == 0

@@ -6,7 +6,7 @@ RUN apt update -y && \
 
 # Install app
 WORKDIR /opt/app
-COPY requirements.txt .
+COPY ./requirements.txt .
 RUN python3 -m pip install -r requirements.txt
 COPY ./app .
 
@@ -14,4 +14,6 @@ COPY ./app .
 USER botuser
 RUN flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
-CMD cd /opt && python3 -m app
+# Setup src
+WORKDIR /opt
+CMD ["python3", "-m", "app"]
