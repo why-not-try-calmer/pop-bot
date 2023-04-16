@@ -18,8 +18,9 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
-          username: azureuser
+          username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
+          passphrase: ${{ secrets.PASSWORD }}
           script: |
             cd /opt/app
-            ./regen.sh pop
+            ./refresh.sh pop
