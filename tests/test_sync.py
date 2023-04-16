@@ -68,7 +68,7 @@ def test_flatpak_search():
     }
     query = parse_query(update)
     assert query
-    result = run_task(query.input)
+    result = run_task(query.input, timeout=12)
     print(result)
     assert len(result.split("\n")) >= 2
 

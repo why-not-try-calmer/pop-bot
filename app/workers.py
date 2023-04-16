@@ -49,11 +49,11 @@ def try_to_invalidate(cmd: str) -> str | None:
             return to_error(split_args[1], "flatpak", allowed_flatpak_1)
 
 
-def run_cmd(cmd: str) -> str:
+def run_cmd(cmd: str, timeout: int) -> str:
     result = subprocess.run(
         cmd,
         shell=True,
-        timeout=6,
+        timeout=timeout,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -61,8 +61,8 @@ def run_cmd(cmd: str) -> str:
     return result.stderr if result.returncode != 0 else result.stdout
 
 
-def run_task(_input: str) -> str:
-    return run_cmd(_input).strip()
+def run_task(_input: str, timeout=6) -> str:
+    return run_cmd(_input, timeout).strip()
 
 
 def process(proc_q: Queue, res_q: Queue):
