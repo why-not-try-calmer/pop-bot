@@ -12,7 +12,8 @@ COPY ./app .
 
 # Setup user
 USER botuser
-RUN flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+RUN flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo && \
+    flatpak update
 
 # Setup src
 WORKDIR /opt
