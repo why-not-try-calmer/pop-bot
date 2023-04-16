@@ -16,7 +16,7 @@ class Webhook:
     @cherrypy.tools.json_out()  # type: ignore
     def pop(self, rec_termination: str):
         if rec_termination != config.endpoint_termination:
-            return 404
+            raise cherrypy.HTTPError(401, "Unauthorized")
         update = cherrypy.request.json
         if query := parse_query(update):
             try:
