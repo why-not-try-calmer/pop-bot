@@ -33,4 +33,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          python -m pytest -s
+          PROD=0 python -m pytest -s
