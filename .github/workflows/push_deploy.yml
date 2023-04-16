@@ -17,9 +17,9 @@ jobs:
       - name: Connect And Pull
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
+          host: ${{ secrets.HOST }}
           username: azureuser
-          key: ${{ secrets.DEPLOY_KEY }}
+          key: ${{ secrets.KEY }}
           script: |
             cd /opt/app
             ./regen.sh pop
